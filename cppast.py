@@ -11,11 +11,10 @@ index = clang.cindex.Index.create()
 
 input_filename = 'simple.txt'
 output_filename = 'output.cpp'
-first = True
 
-with open(input_filename, 'r') as infile, open(output_filename, 'w') as outfile:
-    for line in infile:
-        outfile.write(line)
+with open(input_filename, 'r') as input, open(output_filename, 'w') as output:
+    for line in input:
+        output.write(line)
 
 root = index.parse(output_filename)
 
@@ -23,6 +22,7 @@ root = index.parse(output_filename)
 label_dict = {}
 
 def traverse_ast(node, parent=None, graph=None, first=False):
+    # TODO: This is here to try to get the value of integer literals, but it and the "first" parameter should be deleted
     if node.kind.name == "INTEGER_LITERAL":
         print(dir(node))
         print(dir(node.kind))
@@ -39,7 +39,8 @@ def traverse_ast(node, parent=None, graph=None, first=False):
         # Add the current node to the graph
         node_id = str(node.hash)
         node_label = node.kind.name
-        # maybe need to make sure node label is 7 chars long
+        # maybe need to make sure node label is 7 chars long 
+        # This part is also here for considering literal values, but should it be?
         if str(node_label)[-7:] == "LITERAL":
             # Differentiating string literals and other numeric literals, who knows if this is a good idea or not
             if node_label[:6] == "STRING":

@@ -22,11 +22,11 @@ root = index.parse(output_filename)
 label_dict = {}
 
 def traverse_ast(node, parent=None, graph=None, first=False):
-    # TODO: This is here to try to get the value of integer literals, but it and the "first" parameter should be deleted
-    if node.kind.name == "INTEGER_LITERAL":
-        print(dir(node))
-        print(dir(node.kind))
-        print(node.get_arguments)
+    # TODO: the "first" parameter should be deleted
+    # if node.kind.name == "INTEGER_LITERAL":
+    #     print(dir(node))
+    #     print(dir(node.kind))
+    #     print(list(node.get_tokens())[0].spelling)
 
 
     if graph is None:
@@ -45,11 +45,11 @@ def traverse_ast(node, parent=None, graph=None, first=False):
             # Differentiating string literals and other numeric literals, who knows if this is a good idea or not
             if node_label[:6] == "STRING":
                 # This line is here only for visualization purposes. If we are running some algo on this graph then don't do this
-                node_label += ' ' + str(node.spelling)
+                # node_label += ' ' + str(node.spelling)
 
                 graph.add_node(node_id, label=node_label, string_val = node.spelling)
             else:
-                graph.add_node(node_id, label=node_label, literal_val = node.spelling)
+                graph.add_node(node_id, label=node_label, literal_val = next(node.get_tokens()).spelling)
             
         else:
             graph.add_node(node_id, label=node_label)

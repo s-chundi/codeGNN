@@ -5,11 +5,13 @@ import graphviz
 import tempfile
 import matplotlib.pyplot as plt
 
+import node_features as nf
+
 # create an index
 clang.cindex.Config.set_library_file('/Library/Developer/CommandLineTools/usr/lib/libclang.dylib')
 index = clang.cindex.Index.create()
 
-input_filename = 'simple.txt'
+input_filename = 'input.txt'
 output_filename = 'output.cpp'
 
 with open(input_filename, 'r') as input, open(output_filename, 'w') as output:
@@ -28,7 +30,6 @@ def traverse_ast(node, parent=None, graph=None, first=False):
     #     print(dir(node.kind))
     #     print(list(node.get_tokens())[0].spelling)
 
-
     if graph is None:
         graph = nx.DiGraph()
     if node.kind.is_unexposed():
@@ -39,6 +40,7 @@ def traverse_ast(node, parent=None, graph=None, first=False):
         # Add the current node to the graph
         node_id = str(node.hash)
         node_label = node.kind.name
+        # print("node_type: ", node_type)
         # maybe need to make sure node label is 7 chars long 
         # This part is also here for considering literal values, but should it be?
         if str(node_label)[-7:] == "LITERAL":
@@ -47,12 +49,16 @@ def traverse_ast(node, parent=None, graph=None, first=False):
                 # This line is here only for visualization purposes. If we are running some algo on this graph then don't do this
                 # node_label += ' ' + str(node.spelling)
 
-                graph.add_node(node_id, label=node_label, string_val = node.spelling)
+                graph.add_node(node_id, label=node_label, string_val = node.spelling, node_features = nf.label_to_one_hot(node_label))
             else:
-                graph.add_node(node_id, label=node_label, literal_val = next(node.get_tokens()).spelling)
+                try:
+                    val = next(node.get_tokens()).spelling
+                except StopIteration:
+                    val = None
+                graph.add_node(node_id, label=node_label, literal_val = val, node_features = nf.label_to_one_hot(node_label))
             
         else:
-            graph.add_node(node_id, label=node_label)
+            graph.add_node(node_id, label=node_label, node_features = nf.label_to_one_hot(node_label))
 
         label_dict[node_id] = node_label
         # Add an edge from the current node to its parent
@@ -65,9 +71,9 @@ def traverse_ast(node, parent=None, graph=None, first=False):
 
 # Traverse the AST and construct the graph
 ast_graph = traverse_ast(root.cursor, first=True)
-nx.draw(ast_graph, labels=label_dict, with_labels = True)
-plt.show()
 print(f"The graph has {len(ast_graph.nodes)} nodes")
 print(f"The graph has {len(ast_graph.edges)} edges")
+nx.draw(ast_graph, labels=label_dict, with_labels = True)
+plt.show()
 # agraph = to_agraph(ast_graph)
 # agraph.draw('sample_ast.png', prog='sfdp')

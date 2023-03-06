@@ -5,26 +5,25 @@ import graphviz
 import tempfile
 import matplotlib.pyplot as plt
 
-import node_features as nf
+import nx_pyg as nf
 
 # create an index
 clang.cindex.Config.set_library_file('/Library/Developer/CommandLineTools/usr/lib/libclang.dylib')
 index = clang.cindex.Index.create()
 
-input_filename = 'input.txt'
-output_filename = 'output.cpp'
+OUTPUT_FILENAME = 'output.cpp'
 
-with open(input_filename, 'r') as input, open(output_filename, 'w') as output:
-    for line in input:
-        output.write(line)
+def get_root(input_filename, output_filename=OUTPUT_FILENAME):
+    with open(input_filename, 'r') as input, open(output_filename, 'w') as output:
+        for line in input:
+            output.write(line)
 
-root = index.parse(output_filename)
+    root = index.parse(output_filename)
+    return root
 
-# A dict to show label attributes. 
-label_dict = {}
-
-def traverse_ast(node, parent=None, graph=None, first=False):
+def traverse_ast(node, parent=None, graph=None, first=False, label_dict=None):
     # TODO: the "first" parameter should be deleted
+    # TODO: review and clean up function
     # if node.kind.name == "INTEGER_LITERAL":
     #     print(dir(node))
     #     print(dir(node.kind))
@@ -35,7 +34,7 @@ def traverse_ast(node, parent=None, graph=None, first=False):
     if node.kind.is_unexposed():
         # Unexposed nodes are compiler specific and should be skipped over
         for child in node.get_children():
-            traverse_ast(child, parent, graph)
+            traverse_ast(child, parent, graph, label_dict=label_dict)
     else:
         # Add the current node to the graph
         node_id = str(node.hash)
@@ -49,31 +48,48 @@ def traverse_ast(node, parent=None, graph=None, first=False):
                 # This line is here only for visualization purposes. If we are running some algo on this graph then don't do this
                 # node_label += ' ' + str(node.spelling)
 
-                graph.add_node(node_id, label=node_label, string_val = node.spelling, node_features = nf.label_to_one_hot(node_label))
+                graph.add_node(node_id, label=nf.label_to_categorical(node_label), val = node.spelling)
             else:
                 try:
                     val = next(node.get_tokens()).spelling
                 except StopIteration:
                     val = None
-                graph.add_node(node_id, label=node_label, literal_val = val, node_features = nf.label_to_one_hot(node_label))
+                graph.add_node(node_id, label=nf.label_to_categorical(node_label), val = val)
             
         else:
-            graph.add_node(node_id, label=node_label, node_features = nf.label_to_one_hot(node_label))
+            # Do we want to add the spelling of non-literals to the graph?
+            graph.add_node(node_id, label=nf.label_to_categorical(node_label), val = '')
 
-        label_dict[node_id] = node_label
+        if isinstance(label_dict, dict):
+            label_dict[node_id] = node_label
+
         # Add an edge from the current node to its parent
         if parent is not None:
             graph.add_edge(node_id, parent)
         # Recursively traverse the children of the current node
         for child in node.get_children():
-            traverse_ast(child, node_id, graph)
+            traverse_ast(child, node_id, graph, label_dict=label_dict)
     return graph
 
-# Traverse the AST and construct the graph
-ast_graph = traverse_ast(root.cursor, first=True)
-print(f"The graph has {len(ast_graph.nodes)} nodes")
-print(f"The graph has {len(ast_graph.edges)} edges")
-nx.draw(ast_graph, labels=label_dict, with_labels = True)
-plt.show()
-# agraph = to_agraph(ast_graph)
-# agraph.draw('sample_ast.png', prog='sfdp')
+
+def txt_to_nx_graph(input_filename, output_filename=OUTPUT_FILENAME):
+    root = get_root(input_filename, output_filename)
+    graph = traverse_ast(root)
+    return graph
+
+
+if __name__ == '__main__':
+    input_filename = 'simple.txt'
+    root = get_root(input_filename)
+
+    # Traverse the AST and construct the graph
+    label_dict = {}
+    ast_graph = traverse_ast(root.cursor, first=True, label_dict=label_dict)
+    print(f"The graph has {len(ast_graph.nodes)} nodes")
+    print(f"The graph has {len(ast_graph.edges)} edges")
+
+    data = nf.to_pyg(ast_graph)
+    print("PyG Data: ", data)
+
+    nx.draw(ast_graph, labels=label_dict, with_labels = True)
+    plt.show()

@@ -1,5 +1,8 @@
 import numpy as np
 
+import torch
+import torch_geometric as pyg
+
 NODE_LABELS = ['UNEXPOSED_DECL', 'STRUCT_DECL', 'UNION_DECL', 'CLASS_DECL', 'ENUM_DECL', 'FIELD_DECL',
                'ENUM_CONSTANT_DECL', 'FUNCTION_DECL', 'VAR_DECL', 'PARM_DECL', 'OBJC_INTERFACE_DECL',
                'OBJC_CATEGORY_DECL', 'OBJC_PROTOCOL_DECL', 'OBJC_PROPERTY_DECL', 'OBJC_IVAR_DECL',
@@ -52,10 +55,25 @@ NODE_LABELS = ['UNEXPOSED_DECL', 'STRUCT_DECL', 'UNION_DECL', 'CLASS_DECL', 'ENU
 NODE_LABEL_INDEX_LOOKUP = {l: i for i, l in enumerate(NODE_LABELS)}
 
 def label_to_one_hot(label):
-    one_hot = np.zeros(len(NODE_LABELS) + 1)
+    one_hot = torch.zeros(len(NODE_LABELS) + 1)
     if label in NODE_LABEL_INDEX_LOOKUP:
         one_hot[NODE_LABEL_INDEX_LOOKUP[label]] = 1
     else:
       # Not a known label, so set the last index to 1
       one_hot[-1] = 1
     return one_hot
+
+
+def label_to_categorical(label):
+    if label in NODE_LABEL_INDEX_LOOKUP:
+        return int(NODE_LABEL_INDEX_LOOKUP[label])
+    else:
+      # Not a known label, so return the last index
+      return len(NODE_LABELS)
+
+
+def to_pyg(nx_graph):
+  data = pyg.utils.from_networkx(nx_graph)
+  data.x = torch.nn.functional.one_hot(data.label, num_classes=len(NODE_LABELS) + 1)
+  # TODO: Convert values to feature vectors (e.g. token embeddings) and concat with one-hot labels to form data.x
+  return data

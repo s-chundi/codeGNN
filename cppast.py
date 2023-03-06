@@ -74,7 +74,7 @@ def traverse_ast(node, parent=None, graph=None, first=False, label_dict=None):
 
 def txt_to_nx_graph(input_filename, output_filename=OUTPUT_FILENAME):
     root = get_root(input_filename, output_filename)
-    graph = traverse_ast(root)
+    graph = traverse_ast(root.cursor)
     return graph
 
 

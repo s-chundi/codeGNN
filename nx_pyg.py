@@ -74,6 +74,6 @@ def label_to_categorical(label):
 
 def to_pyg(nx_graph):
   data = pyg.utils.from_networkx(nx_graph)
-  data.x = torch.nn.functional.one_hot(data.label, num_classes=len(NODE_LABELS) + 1)
+  data.x = torch.nn.functional.one_hot(data.node_label, num_classes=len(NODE_LABELS) + 1)
   # TODO: Convert values to feature vectors (e.g. token embeddings) and concat with one-hot labels to form data.x
   return data

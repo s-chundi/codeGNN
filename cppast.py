@@ -48,17 +48,17 @@ def traverse_ast(node, parent=None, graph=None, first=False, label_dict=None):
                 # This line is here only for visualization purposes. If we are running some algo on this graph then don't do this
                 # node_label += ' ' + str(node.spelling)
 
-                graph.add_node(node_id, label=nf.label_to_categorical(node_label), val = node.spelling)
+                graph.add_node(node_id, node_label=nf.label_to_categorical(node_label), node_val = node.spelling)
             else:
                 try:
                     val = next(node.get_tokens()).spelling
                 except StopIteration:
                     val = None
-                graph.add_node(node_id, label=nf.label_to_categorical(node_label), val = val)
+                graph.add_node(node_id, node_label=nf.label_to_categorical(node_label), node_val = val)
             
         else:
             # Do we want to add the spelling of non-literals to the graph?
-            graph.add_node(node_id, label=nf.label_to_categorical(node_label), val = '')
+            graph.add_node(node_id, node_label=nf.label_to_categorical(node_label), node_val = '')
 
         if isinstance(label_dict, dict):
             label_dict[node_id] = node_label

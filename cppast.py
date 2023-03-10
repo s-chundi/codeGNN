@@ -24,10 +24,6 @@ def get_root(input_filename, output_filename=OUTPUT_FILENAME):
 def traverse_ast(node, parent=None, graph=None, first=False, label_dict=None):
     # TODO: the "first" parameter should be deleted
     # TODO: review and clean up function
-    # if node.kind.name == "INTEGER_LITERAL":
-    #     print(dir(node))
-    #     print(dir(node.kind))
-    #     print(list(node.get_tokens())[0].spelling)
 
     if graph is None:
         graph = nx.DiGraph()
@@ -81,7 +77,7 @@ def txt_to_nx_graph(input_filename, output_filename=OUTPUT_FILENAME):
 if __name__ == '__main__':
     input_filename = 'simple.txt'
     root = get_root(input_filename)
-
+    # print("Obtained root")
     # Traverse the AST and construct the graph
     label_dict = {}
     ast_graph = traverse_ast(root.cursor, first=True, label_dict=label_dict)
@@ -91,5 +87,5 @@ if __name__ == '__main__':
     data = nf.to_pyg(ast_graph)
     print("PyG Data: ", data)
 
-    nx.draw(ast_graph, labels=label_dict, with_labels = True)
-    plt.show()
+    # nx.draw(ast_graph, labels=label_dict, with_labels = True)
+    # plt.show()

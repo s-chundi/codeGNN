@@ -20,6 +20,8 @@ def get_file_paths(data_dir):
 
 if __name__ == '__main__':
     input_filename = 'simple.txt'
-    pyg_data = txt_to_pyg_data(input_filename)
+    task_label = 1
+    index = 0
+    pyg_data = txt_to_pyg_data(input_filename, 1, 0)
     print(pyg_data)
 

@@ -14,7 +14,7 @@ import torch.optim as optim
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import softmax
 
-args = {'model_type': 'GAT', 'num_layers': 5, 'heads': 1, 'batch_size': 3, 'embedding_dim': 210, 'hidden_dim': 210, 'dropout': 0.5, 
+args = {'model_type': 'GS', 'num_layers': 5, 'heads': 1, 'batch_size': 3, 'embedding_dim': 210, 'hidden_dim': 210, 'dropout': 0.5, 
             'epochs': 10, 'opt': 'adam', 'opt_restart': 0, 'weight_decay': 5e-3, 'lr': 0.01}
 
 class GNNStack(torch.nn.Module):
@@ -35,6 +35,8 @@ class GNNStack(torch.nn.Module):
         self.num_layers = args.num_layers
 
     def build_conv_model(self, model_type):
+        if model_type == 'GS':
+            return GraphSage
         if model_type == 'GAT':
             return GAT
 
@@ -128,7 +130,47 @@ class GAT(MessagePassing):
 
         return out
     
+class GraphSage(MessagePassing):
+    
+    def __init__(self, in_channels, out_channels, normalize = True,
+                 bias = False, **kwargs):  
+        super(GraphSage, self).__init__(**kwargs)
 
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.normalize = normalize
+        self.lin_l = nn.Linear(in_channels, out_channels, bias=bias)
+        self.lin_r = nn.Linear(in_channels, out_channels, bias=bias)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.lin_l.reset_parameters()
+        self.lin_r.reset_parameters()
+
+    def forward(self, x, edge_index, size = None):
+        out = self.propagate(edge_index, x=(x, x), size=size).type(torch.float32)
+        out = self.lin_r(out)
+        
+        x = x.type(torch.float32)
+        out += self.lin_l(x)
+     
+
+        if self.normalize:
+            out = F.normalize(out, p=2., dim=-1)
+
+        return out
+
+    def message(self, x_j):
+        out = x_j
+
+        return out
+
+    def aggregate(self, inputs, index, dim_size = None):
+        node_dim = self.node_dim
+        out = torch_scatter.scatter(inputs, index, dim=node_dim, dim_size=dim_size, reduce='mean')
+
+        return out
+    
 def build_optimizer(args, params):
     weight_decay = args.weight_decay
     filter_fn = filter(lambda p : p.requires_grad, params)

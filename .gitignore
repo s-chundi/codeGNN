@@ -1,6 +1,7 @@
 workbench.py
 ProgramData/
 .DS_Store
+data/poj-104/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

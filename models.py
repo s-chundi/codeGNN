@@ -53,18 +53,48 @@ class GNNStack(torch.nn.Module):
         return x
     
     def loss(self, predictions, label):
-        predictions = F.normalize(predictions, dim=1)
-        sim = ((predictions[0] @ predictions[1]).unsqueeze(0) + 1) / 2 - 1e-4
-        dif = ((predictions[1] @ predictions[2]).unsqueeze(0) + 1) / 2 + 1e-4
-        tru = label[0] == label[1]
-        otru = label[1] == label[2]
-        tru = tru.type(torch.float32).unsqueeze(0)
-        otru = otru.type(torch.float32).unsqueeze(0)
-        try:
-            loss = nn.BCELoss()(sim, tru) + nn.BCELoss()(dif, otru)
-        except:
-            print(sim)
-            print(tru)
+#         predictions = F.normalize(predictions, dim=1)
+#         sim = ((predictions[0] @ predictions[1]).unsqueeze(0) + 1) / 2 - 1e-4
+#         dif = ((predictions[1] @ predictions[2]).unsqueeze(0) + 1) / 2 + 1e-4
+#         tru = label[0] == label[1]
+#         otru = label[1] == label[2]
+#         tru = tru.type(torch.float32).unsqueeze(0)
+#         otru = otru.type(torch.float32).unsqueeze(0)
+#         try:
+#             loss = nn.BCELoss()(sim, tru) + nn.BCELoss()(dif, otru)
+#         except:
+#             print(sim)
+#             print(tru)
+#         return loss
+        
+        x = F.normalize(predictions, dim = 1)
+        y = label
+        similarity_matrix = x @ x.T
+        label_matrix = torch.eq(y.view(-1, 1), y.view(1, -1))
+
+        positive_matrix = label_matrix.triu(diagonal=1)
+        negative_matrix = label_matrix.logical_not().triu(diagonal=1)
+
+        #flatten
+        similarity_matrix = similarity_matrix.view(-1)
+        positive_matrix = positive_matrix.view(-1)
+        negative_matrix = negative_matrix.view(-1)
+
+        sp = similarity_matrix[positive_matrix] 
+        sn = similarity_matrix[negative_matrix]
+   
+        alpha_p = torch.relu(- sp.detach() + 1 + self.margin)
+        alpha_n = torch.relu(sn.detach() + self.margin)
+
+        delta_p = 1 - self.margin
+        delta_n = self.margin
+
+        logit_p = - alpha_p * (sp - delta_p) * self.gamma
+        logit_n = alpha_n * (sn - delta_n) * self.gamma
+
+        loss = self.soft_plus(torch.logsumexp(logit_n, dim = 0) + torch.logsumexp(logit_p, dim = 0))
+        # loss = nn.CrossEntropyLoss()
+        print(loss)
         return loss
     
 class objectview(object):

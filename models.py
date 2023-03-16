@@ -215,7 +215,7 @@ def train(train_loader, valid_loader, args, model = None):
 
     # build model
     if model == None:
-        model = GNNStack(train_loader.dataset.num_node_features, args.hidden_dim, args.embedding_dim, args)
+        model = GNNStack(train_loader.dataset[0].num_node_features, args.hidden_dim, args.embedding_dim, args)
     opt = build_optimizer(args, model.parameters())
 
     # train
@@ -231,6 +231,7 @@ def train(train_loader, valid_loader, args, model = None):
             pred = model(batch)
             predictions = torch_scatter.scatter(pred, batch.batch, dim = 0, reduce='mean')
             label = batch.task_label
+            print(label)
             loss = model.loss(predictions, label)
             loss.backward()
             opt.step()
@@ -273,9 +274,12 @@ if __name__ == '__main__':
     # bds = Batch.from_data_list([ds, ds2, ds3])
     # print(type(bds))
 
-    train_loader = DataLoader(torch.load('data/poj-104/train.pt'))
-    valid_loader = DataLoader(torch.load('data/poj-104/valid.pt'))
-    test_loader = DataLoader(torch.load('data/poj-104/test.pt'))
+    train_loader = DataLoader(torch.load('data/poj-104/train.pt'), batch_size=args.batch_size, shuffle=False)
+    print(f"{len(train_loader.dataset)} training graphs")
+    valid_loader = DataLoader(torch.load('data/poj-104/valid.pt'), batch_size=args.batch_size, shuffle=False)
+    print(f"{len(valid_loader.dataset)} validation graphs")
+    test_loader = DataLoader(torch.load('data/poj-104/test.pt'), batch_size=args.batch_size, shuffle=False)
+    print(f"{len(test_loader.dataset)} test graphs")
 
     valid_errs, losses, best_model, best_err = train(train_loader, valid_loader, args)
 

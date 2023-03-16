@@ -29,7 +29,7 @@ def json_to_pyg_dataset(input_filename, output_filename):
             tmp_filename = 'tmp.txt'
             with open(tmp_filename, 'w') as f:
                 f.write(item['code'])
-            pyg_data = txt_to_pyg_data(tmp_filename, item['label'], item['index'])
+            pyg_data = txt_to_pyg_data(tmp_filename, int(item['label']), int(item['index']))
             pyg_dataset.append(pyg_data)
     torch.save(pyg_dataset, output_filename)
     print(len(pyg_dataset))

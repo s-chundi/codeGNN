@@ -210,23 +210,23 @@ def build_optimizer(args, params):
         optimizer = optim.SGD(filter_fn, lr=args.lr, momentum=0.95, weight_decay=weight_decay)
     return optimizer
 
-def train(dataset, args, model = None):
-    test_loader = loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
+def train(train_loader, valid_loader, args, model = None):
+    # test_loader = loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 
     # build model
     if model == None:
-        model = GNNStack(dataset.num_node_features, args.hidden_dim, args.embedding_dim, args)
+        model = GNNStack(train_loader.dataset.num_node_features, args.hidden_dim, args.embedding_dim, args)
     opt = build_optimizer(args, model.parameters())
 
     # train
     losses = []
-    test_errs = []
+    valid_errs = []
     best_err = float('inf')
     best_model = None
     for epoch in trange(args.epochs, desc="Training", unit="Epochs"):
         total_loss = 0
         model.train()
-        for batch in loader:
+        for batch in train_loader:
             opt.zero_grad()
             pred = model(batch)
             predictions = torch_scatter.scatter(pred, batch.batch, dim = 0, reduce='mean')
@@ -235,25 +235,24 @@ def train(dataset, args, model = None):
             loss.backward()
             opt.step()
             total_loss += loss.item() * batch.num_graphs
-        total_loss /= len(loader.dataset)
+        total_loss /= len(train_loader.dataset)
         losses.append(total_loss)
 
         if epoch % 10 == 0:
-          test_err = test(test_loader, model)
-          test_errs.append(test_err)
-          if test_err < best_err:
-            best_err = test_err
+          valid_err = test(valid_loader, model)
+          valid_errs.append(valid_err)
+          if valid_err < best_err:
+            best_err = valid_err
             best_model = copy.deepcopy(model)
         else:
-          test_errs.append(test_errs[-1])
+          valid_errs.append(valid_errs[-1])
     
-    return test_errs, losses, best_model, best_err, test_loader
+    return valid_errs, losses, best_model, best_err
 
 def test(loader, test_model):
     test_model.eval()
 
     error = 0
-    # Note that Cora is only one graph!
     for batch in loader:
         with torch.no_grad():
             pred = test_model(batch)
@@ -267,13 +266,18 @@ def test(loader, test_model):
 
 if __name__ == '__main__':
     args = objectview(args)
-    ds = dataset.txt_to_pyg_data('simple.txt', task_label=1, index=7)
-    ds2 = dataset.txt_to_pyg_data('simple.txt', task_label=1, index=4)
-    ds3 = dataset.txt_to_pyg_data('input.txt', task_label=2, index=3)
+    # ds = dataset.txt_to_pyg_data('simple.txt', task_label=1, index=7)
+    # ds2 = dataset.txt_to_pyg_data('simple.txt', task_label=1, index=4)
+    # ds3 = dataset.txt_to_pyg_data('input.txt', task_label=2, index=3)
     # print(ds.x.shape)
-    bds = Batch.from_data_list([ds, ds2, ds3])
+    # bds = Batch.from_data_list([ds, ds2, ds3])
     # print(type(bds))
-    test_errs, losses, best_model, best_err, test_loader = train(bds, args) 
+
+    train_loader = DataLoader(torch.load('data/poj-104/train.pt'))
+    valid_loader = DataLoader(torch.load('data/poj-104/valid.pt'))
+    test_loader = DataLoader(torch.load('data/poj-104/test.pt'))
+
+    valid_errs, losses, best_model, best_err = train(train_loader, valid_loader, args)
 
     print("Minimum loss: {0}".format(min(losses)))
 

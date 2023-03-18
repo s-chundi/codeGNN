@@ -87,5 +87,5 @@ if __name__ == '__main__':
     data = nf.to_pyg(ast_graph)
     print("PyG Data: ", data)
 
-    # nx.draw(ast_graph, labels=label_dict, with_labels = True)
-    # plt.show()
+    nx.draw(ast_graph, labels=label_dict, with_labels = True)
+    plt.show()

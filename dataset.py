@@ -5,6 +5,8 @@ import os
 import json
 import torch
 
+import shutil
+
 def txt_to_pyg_data(input_filename, task_label, index):
     ast_graph = cppast.txt_to_nx_graph(input_filename)
     pyg_data = nx_pyg.to_pyg(ast_graph)
@@ -21,9 +23,8 @@ def get_file_paths(data_dir):
     return file_paths
 
 
-def json_to_pyg_dataset(input_filename, output_filedir):
-    # pyg_dataset = []
-    i = 0
+def json_to_pyg_dataset(input_filename, output_filename):
+    pyg_dataset = []
     with open(input_filename, 'r') as f:
         for line in f:
             item = json.loads(line)
@@ -31,12 +32,18 @@ def json_to_pyg_dataset(input_filename, output_filedir):
             with open(tmp_filename, 'w') as f:
                 f.write(item['code'])
             pyg_data = txt_to_pyg_data(tmp_filename, int(item['label']), int(item['index']))
-            torch.save(pyg_data, f'{output_filedir}/{i}.pt')
-            i += 1
-    print(i)
+            pyg_dataset.append(pyg_data)
+    torch.save(pyg_dataset, output_filename)
+    print(len(pyg_dataset))
+
+def zip_datasets(dir_name, output_filename):
+    shutil.make_archive(output_filename, 'zip', dir_name)
+
+
 
 if __name__ == '__main__':
-    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/train.jsonl', 'data/poj-104/train')
-    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/valid.jsonl', 'data/poj-104/valid')
-    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/test.jsonl', 'data/poj-104/test')
+    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/train.jsonl', 'data/poj-104/train.pt')
+    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/valid.jsonl', 'data/poj-104/valid.pt')
+    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/test.jsonl', 'data/poj-104/test.pt')
+    zip_datasets('data/poj-104', 'data/poj-104')
 

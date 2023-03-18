@@ -23,7 +23,7 @@ def get_file_paths(data_dir):
     return file_paths
 
 
-def json_to_pyg_dataset(input_filename, output_filename):
+def json_to_pyg_dataset(input_filename, output_filename, stop_at=100):
     pyg_dataset = []
     with open(input_filename, 'r') as f:
         for line in f:
@@ -33,6 +33,8 @@ def json_to_pyg_dataset(input_filename, output_filename):
                 f.write(item['code'])
             pyg_data = txt_to_pyg_data(tmp_filename, int(item['label']), int(item['index']))
             pyg_dataset.append(pyg_data)
+            if len(pyg_dataset) == stop_at:
+                break
     torch.save(pyg_dataset, output_filename)
     print(len(pyg_dataset))
 
@@ -42,8 +44,12 @@ def zip_datasets(dir_name, output_filename):
 
 
 if __name__ == '__main__':
-    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/train.jsonl', 'data/poj-104/train.pt')
-    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/valid.jsonl', 'data/poj-104/valid.pt')
-    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/test.jsonl', 'data/poj-104/test.pt')
-    zip_datasets('data/poj-104', 'data/poj-104')
+    # json_to_pyg_dataset('Clone-detection-POJ-104/dataset/train.jsonl', 'data/poj-104/train.pt')
+    # json_to_pyg_dataset('Clone-detection-POJ-104/dataset/valid.jsonl', 'data/poj-104/valid.pt')
+    # json_to_pyg_dataset('Clone-detection-POJ-104/dataset/test.jsonl', 'data/poj-104/test.pt')
+    # zip_datasets('data/poj-104', 'data/poj-104')
+    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/train.jsonl', 'data/poj-104-mini/train.pt', stop_at=1600)
+    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/valid.jsonl', 'data/poj-104-mini/valid.pt', stop_at=400)
+    json_to_pyg_dataset('Clone-detection-POJ-104/dataset/test.jsonl', 'data/poj-104-mini/test.pt', stop_at=600)
+    zip_datasets('data/poj-104-mini', 'data/poj-104-mini')
 
